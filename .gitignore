@@ -1,0 +1,18 @@
+# Local Packer inputs/artifacts and generated state
+*.auto.pkrvars.hcl
+*.pkrvars.json
+packer_cache/
+output-*/
+*.box
+*.iso
+
+# Never commit installer seeds or private credentials
+seed-private/
+*.pem
+*.key
+*.log
+
+# Ansible local artifacts
+*.retry
+.ansible/
+__pycache__/

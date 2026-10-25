@@ -1,0 +1,4 @@
+---
+template_packages:
+  - qemu-guest-agent
+  - cloud-init

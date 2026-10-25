@@ -1,0 +1,11 @@
+---
+- name: Install template software
+  ansible.builtin.package:
+    name: "{{ template_packages }}"
+    state: present
+
+- name: Enable guest agent
+  ansible.builtin.service:
+    name: qemu-guest-agent
+    enabled: true
+  when: "'qemu-guest-agent' in template_packages"

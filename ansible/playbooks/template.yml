@@ -1,0 +1,7 @@
+---
+- name: Provision Linux template
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: template_base
