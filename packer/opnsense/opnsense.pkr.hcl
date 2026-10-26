@@ -11,46 +11,26 @@ packer {
   }
 }
 
-source "proxmox-iso" "opnsense" {
-  proxmox_url = var.proxmox_url
-  username    = var.proxmox_username
-  token       = var.proxmox_token
-  node        = var.proxmox_node
+# OPNsense's interactive installer is intentionally NOT pretended to be
+# unattended here. Clone an already-installed, tested base template instead.
+source "proxmox-clone" "opnsense" {
+  proxmox_url  = var.proxmox_url
+  username     = var.proxmox_username
+  token        = var.proxmox_token
+  node         = var.proxmox_node
+  clone_vm_id  = var.base_template_vm_id
+  full_clone   = true
+  task_timeout = "10m"
 
   vm_name              = var.template_name
   template_name        = var.template_name
-  template_description = "OPNsense firewall template (installer pending)"
-  os                   = "other" # FreeBSD-based appliance, not a Linux guest.
-  cores                = 2
-  memory               = 4096
-  scsi_controller      = "virtio-scsi-single"
-  qemu_agent           = false # Enable only if the guest agent is configured.
-  cloud_init           = false # Do not assume OPNsense cloud-init support.
+  template_description = "OPNsense cloned base, provisioned with Ansible"
+  os                   = "other"
+  qemu_agent           = false
+  cloud_init           = false
+  # No disk or NIC overrides: preserve the tested base template's storage,
+  # WAN/LAN mapping, boot firmware, and firewall interface assignments.
 
-  boot_iso {
-    iso_file     = var.iso_file
-    iso_checksum = var.iso_checksum
-    unmount      = true
-  }
-
-  disks {
-    type         = "scsi"
-    storage_pool = var.storage_pool
-    disk_size    = "20G"
-  }
-
-  # Dedicated bridge inputs; ensure WAN/LAN assignment is handled in the guest.
-  network_adapters {
-    model  = "virtio"
-    bridge = var.wan_bridge
-  }
-  network_adapters {
-    model  = "virtio"
-    bridge = var.lan_bridge
-  }
-
-  # TODO: Add version-specific unattended install/boot flow and a reliable
-  # SSH endpoint. qemu_agent=false usually requires an explicit ssh_host.
   ssh_username         = var.ssh_username
   ssh_private_key_file = var.ssh_private_key_file
   ssh_host             = var.ssh_host
@@ -58,11 +38,10 @@ source "proxmox-iso" "opnsense" {
 }
 
 build {
-  sources = ["source.proxmox-iso.opnsense"]
+  sources = ["source.proxmox-clone.opnsense"]
 
-  # Requires installer-created SSH account with a real /bin/sh shell and
-  # administrative privileges; do not reuse the Linux package role.
+  # Base template must have key-based SSH to a privileged real shell.
   provisioner "ansible" {
-    playbook_file = "${path.root}/../../ansible/playbooks/opnsense.yml"
+    playbook_file = abspath("${path.root}/../../ansible/playbooks/opnsense.yml")
   }
 }

@@ -17,15 +17,15 @@ source "proxmox-iso" "ubuntu" {
   token       = var.proxmox_token
   node        = var.proxmox_node
 
-  vm_name              = var.template_name
-  template_name        = var.template_name
-  template_description = "Ubuntu template provisioned with Ansible"
-  os                   = "l26"
-  cores                = 2
-  memory               = 2048
-  scsi_controller      = "virtio-scsi-single"
-  qemu_agent           = true
-  cloud_init           = true
+  vm_name                             = var.template_name
+  template_name                       = var.template_name
+  template_description                = "Ubuntu template provisioned with Ansible"
+  os                                  = "l26"
+  cores                               = 2
+  memory                              = 2048
+  scsi_controller                     = "virtio-scsi-single"
+  qemu_agent                          = true
+  cloud_init                          = true
   cloud_init_disable_upgrade_packages = true
 
   boot_iso {
@@ -36,10 +36,11 @@ source "proxmox-iso" "ubuntu" {
 
   # NoCloud seed is generated locally; do not commit actual credentials.
   additional_iso_files {
-    cd_label = "cidata"
+    cd_label         = "cidata"
+    iso_storage_pool = var.iso_storage_pool
     cd_content = {
       "meta-data" = "instance-id: ubuntu-packer\nlocal-hostname: ubuntu-template\n"
-      "user-data" = templatefile("${path.root}/user-data.pkrtpl", {
+      "user-data" = templatefile(abspath("${path.root}/user-data.pkrtpl"), {
         hostname       = var.template_name
         username       = var.ssh_username
         password_hash  = var.installer_password_hash
@@ -78,6 +79,6 @@ build {
   sources = ["source.proxmox-iso.ubuntu"]
 
   provisioner "ansible" {
-    playbook_file = "${path.root}/../../ansible/playbooks/template.yml"
+    playbook_file = abspath("${path.root}/../../ansible/playbooks/template.yml")
   }
 }

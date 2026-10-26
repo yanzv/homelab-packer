@@ -24,6 +24,10 @@ variable "iso_checksum" {
 variable "storage_pool" {
   type = string
 }
+variable "iso_storage_pool" {
+  type        = string
+  description = "Proxmox storage accepting ISO images for the generated NoCloud CD"
+}
 variable "network_bridge" {
   type = string
 }

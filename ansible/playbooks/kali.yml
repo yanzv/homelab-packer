@@ -9,4 +9,4 @@
       - qemu-guest-agent
       - curl
   roles:
-    - role: template_base
+    - role: ../roles/template_base

@@ -35,7 +35,7 @@ source "proxmox-iso" "kali" {
 
   # Serve installer answers and the public SSH key to the guest.
   http_content = {
-    "/preseed.cfg" = templatefile("${path.root}/preseed.pkrtpl", {
+    "/preseed.cfg" = templatefile(abspath("${path.root}/preseed.pkrtpl"), {
       hostname       = var.template_name
       username       = var.ssh_username
       password_hash  = var.installer_password_hash
@@ -69,6 +69,6 @@ build {
   sources = ["source.proxmox-iso.kali"]
 
   provisioner "ansible" {
-    playbook_file = "${path.root}/../../ansible/playbooks/kali.yml"
+    playbook_file = abspath("${path.root}/../../ansible/playbooks/kali.yml")
   }
 }
