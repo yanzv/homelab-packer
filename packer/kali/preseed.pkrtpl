@@ -1,0 +1,38 @@
+# Kali/Debian installer preseed. Destructive: wipes the first SCSI disk.
+d-i debian-installer/locale string en_US.UTF-8
+d-i keyboard-configuration/xkb-keymap select us
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string ${hostname}
+d-i netcfg/get_domain string localdomain
+d-i hw-detect/load_firmware boolean true
+
+d-i passwd/root-login boolean false
+d-i passwd/user-fullname string Packer Build
+d-i passwd/username string ${username}
+d-i passwd/user-password-crypted password ${password_hash}
+d-i clock-setup/utc boolean true
+d-i time/zone string UTC
+
+d-i partman-auto/disk string /dev/sda
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+d-i apt-setup/use_mirror boolean true
+d-i pkgsel/include string openssh-server sudo
+d-i pkgsel/upgrade select none
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+
+# Installer shell runs against /target; in-target runs commands in guest.
+d-i preseed/late_command string \
+  in-target mkdir -p /home/${username}/.ssh; \
+  echo '${ssh_public_key}' > /target/home/${username}/.ssh/authorized_keys; \
+  in-target chmod 700 /home/${username}/.ssh; \
+  in-target chmod 600 /home/${username}/.ssh/authorized_keys; \
+  in-target chown -R ${username}:${username} /home/${username}/.ssh; \
+  in-target usermod -aG sudo ${username}
+d-i finish-install/reboot_in_progress note

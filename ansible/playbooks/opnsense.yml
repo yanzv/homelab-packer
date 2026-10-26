@@ -1,0 +1,18 @@
+---
+# OPNsense is FreeBSD-based; raw avoids requiring Python in the appliance.
+# Requires SSH to an administrative account with a real shell (not the menu).
+- name: Provision OPNsense template
+  hosts: all
+  gather_facts: false
+  vars:
+    opnsense_plugin: os-qemu-guest-agent
+  tasks:
+    - name: Check whether guest agent plugin is installed
+      ansible.builtin.raw: "pkg info -e {{ opnsense_plugin }}"
+      register: agent_installed
+      failed_when: agent_installed.rc not in [0, 1]
+      changed_when: false
+
+    - name: Install OPNsense QEMU guest agent plugin
+      ansible.builtin.raw: "pkg install -y {{ opnsense_plugin }}"
+      when: agent_installed.rc == 1

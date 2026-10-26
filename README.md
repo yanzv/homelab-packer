@@ -1,23 +1,19 @@
 # Proxmox template builder
 
-Separate Packer ISO templates for **Ubuntu**, **Kali Linux**, and **OPNsense**. These are **scaffolds, not build-ready installers**: each OS still needs a version-specific unattended installation and reachable SSH before any `packer build`.
+Separate Packer ISO builds for **Ubuntu Server**, **Kali Linux**, and **OPNsense**, with Ansible guest provisioning. These are version-sensitive starting templates. **No Proxmox build has been run or verified.** OPNsense still needs its installation and management-SSH automation before it can build unattended.
 
 ## Layout
 
-- `packer/ubuntu/`: Ubuntu source and inputs; use autoinstall, then the Linux base Ansible playbook.
-- `packer/kali/`: Kali source and inputs; use the installer automation appropriate for your Kali release, then the Kali Ansible playbook.
-- `packer/opnsense/`: OPNsense (FreeBSD-based) source and inputs, with distinct WAN/LAN bridge inputs. **No Linux Ansible role or cloud-init** is applied. Decide on an OPNsense-supported package/plugin provisioning method after selecting a version.
-- `ansible/playbooks/template.yml`: Ubuntu provisioning entry point.
-- `ansible/playbooks/kali.yml`: Kali provisioning entry point (no assumed cloud-init package).
-- `ansible/roles/template_base/`: reusable Linux software role; extend with OS-specific roles as needed.
+- `packer/ubuntu/`: Ubuntu Server live-ISO GRUB boot command, NoCloud autoinstall seed, SSH-key login, and Ansible `template.yml` (qemu guest agent + cloud-init).
+- `packer/kali/`: Kali installer BIOS boot command, Debian preseed served over Packer's HTTP server, SSH-key login, and Ansible `kali.yml` (qemu guest agent + curl).
+- `packer/opnsense/`: OPNsense DVD ISO source, separate WAN/LAN bridges and an Ansible `raw` playbook to install `os-qemu-guest-agent`. **Installer boot/answer flow and SSH shell access remain TODO.** No Linux package role or cloud-init is used.
 
-## Prepare one OS
+## Build preparation (per OS)
 
-1. Install Packer and Ansible. Run `packer init packer/<os>` for the selected OS (`ubuntu`, `kali`, or `opnsense`). A CD image tool such as `xorriso` may be needed for installer seed CDs.
-2. Select a release and installer ISO and verify its checksum. Add its unattended installer and matching boot command in `packer/<os>/<os>.pkr.hcl`. It must establish SSH/key access for Packer. For OPNsense, plan the management IP, WAN/LAN assignment and supported software provisioning independently; firewall network defaults should not be assumed safe.
-3. Copy `packer/<os>/example.pkrvars.hcl` to `packer/<os>/local.auto.pkrvars.hcl` (ignored by Git), then set ISO/checksum, storage, bridges and SSH values. Set `PKR_VAR_proxmox_url`, `PKR_VAR_proxmox_username`, `PKR_VAR_proxmox_token` through a secret store. Token identities use `user@realm!tokenid`. **Never commit credentials, installer password hashes, private keys, or sensitive seed files.**
-4. Once the installer and access are actually wired up, run `packer validate -var-file=packer/<os>/local.auto.pkrvars.hcl packer/<os>`, then `packer build -var-file=packer/<os>/local.auto.pkrvars.hcl packer/<os>`. Check the build machine can reach the guest via SSH, and use only the Proxmox permissions necessary.
+1. Install Packer, Ansible, and a CD image tool such as `xorriso` for Ubuntu's NoCloud seed. Run `packer init packer/<os>` for `ubuntu`, `kali`, or `opnsense`.
+2. Select and verify an installer ISO checksum for the exact release. Ubuntu assumes a live server ISO with GRUB paths `/casper/vmlinuz` and `/casper/initrd`; Kali assumes an installer ISO with the BIOS boot prompt and a first disk `/dev/sda`. Adjust boot and disk settings if your release differs. Installer networking must reach Packer's host over HTTP for Kali; use an isolated build network because the preseed contains a password hash.
+3. Copy `packer/<os>/example.pkrvars.hcl` to `packer/<os>/local.auto.pkrvars.hcl` (ignored by Git), and replace placeholders. Set `PKR_VAR_proxmox_url`, `PKR_VAR_proxmox_username` (`user@realm!tokenid`), and `PKR_VAR_proxmox_token` from a secret store. For Ubuntu/Kali also set `PKR_VAR_installer_password_hash` to a **unique, temporary SHA-512 crypt hash** via a secret store; do not use a real/reused account password. Point public/private SSH-key file inputs to a keypair stored outside this repo. The installer creates the `ssh_username` account.
+4. OPNsense requires a version-specific unattended install/boot sequence, safe WAN/LAN assignment, reachable `ssh_host`, and an administrative account with a real shell and key auth. The Packer source does not automate those prerequisites. Confirm the OPNsense plugin is available on your chosen release before provisioning. Do not connect an unconfigured firewall template to production networks.
+5. When prerequisites are met, run `packer fmt -check packer/<os>`, `packer validate -var-file=packer/<os>/local.auto.pkrvars.hcl packer/<os>`, then `packer build -var-file=packer/<os>/local.auto.pkrvars.hcl packer/<os>`. Verify the template on an isolated clone before production use, and remove/lock the temporary installer account and credentials as part of your image hardening. Packer validation alone cannot prove installer keystrokes or guest connectivity.
 
-The Linux role installs `template_packages` using the guest package manager. Ubuntu defaults to `qemu-guest-agent` and `cloud-init`; Kali overrides this to `qemu-guest-agent` and `curl`. Configure cloud-init inside an Ubuntu guest before using the resulting template. OPNsense currently has **no Ansible provisioner**; the generic Linux role is inappropriate for it.
-
-No remote Git repository, credentials, infrastructure changes, or template builds are included.
+Do not commit credentials, password hashes, private keys, generated installer seed files, or Packer logs. Use least-privilege Proxmox API permissions. There is no Git remote or automatic production change.

@@ -32,3 +32,10 @@ variable "ssh_username" {
 variable "ssh_private_key_file" {
   type = string
 }
+variable "ssh_public_key_file" {
+  type = string
+}
+variable "installer_password_hash" {
+  type      = string
+  sensitive = true
+}

@@ -33,6 +33,22 @@ source "proxmox-iso" "kali" {
     unmount      = true
   }
 
+  # Serve installer answers and the public SSH key to the guest.
+  http_content = {
+    "/preseed.cfg" = templatefile("${path.root}/preseed.pkrtpl", {
+      hostname       = var.template_name
+      username       = var.ssh_username
+      password_hash  = var.installer_password_hash
+      ssh_public_key = regex("^[^ ]+ +[^ ]+", trimspace(file(var.ssh_public_key_file)))
+    })
+  }
+  boot_wait = "10s"
+  # Kali installer BIOS boot prompt; adapt the menu keystrokes if using UEFI.
+  boot_command = [
+    "<esc><wait>",
+    "auto=true priority=critical url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ---<enter>"
+  ]
+
   disks {
     type         = "scsi"
     storage_pool = var.storage_pool
@@ -44,8 +60,6 @@ source "proxmox-iso" "kali" {
     bridge = var.network_bridge
   }
 
-  # TODO: Add Kali/Debian unattended installer (e.g. preseed) and matching
-  # boot_command. Installer must authorize the SSH key for ssh_username.
   ssh_username         = var.ssh_username
   ssh_private_key_file = var.ssh_private_key_file
   ssh_timeout          = "30m"

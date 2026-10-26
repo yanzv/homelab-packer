@@ -37,3 +37,12 @@ variable "ssh_private_key_file" {
   type        = string
   description = "Path to a private key outside this repository; install corresponding public key in guest"
 }
+variable "ssh_public_key_file" {
+  type        = string
+  description = "Public key corresponding to ssh_private_key_file"
+}
+variable "installer_password_hash" {
+  type        = string
+  sensitive   = true
+  description = "SHA-512 crypt hash for Ubuntu installer identity; supply via PKR_VAR_installer_password_hash"
+}

@@ -4,6 +4,10 @@ packer {
       source  = "github.com/hashicorp/proxmox"
       version = ">= 1.2.0"
     }
+    ansible = {
+      source  = "github.com/hashicorp/ansible"
+      version = ">= 1.0.0"
+    }
   }
 }
 
@@ -15,7 +19,7 @@ source "proxmox-iso" "opnsense" {
 
   vm_name              = var.template_name
   template_name        = var.template_name
-  template_description = "OPNsense firewall template (installer/provisioning pending)"
+  template_description = "OPNsense firewall template (installer pending)"
   os                   = "other" # FreeBSD-based appliance, not a Linux guest.
   cores                = 2
   memory               = 4096
@@ -55,6 +59,10 @@ source "proxmox-iso" "opnsense" {
 
 build {
   sources = ["source.proxmox-iso.opnsense"]
-  # No Linux Ansible playbook here: choose an OPNsense-safe provisioning
-  # method after confirming version, plugins, and management interface.
+
+  # Requires installer-created SSH account with a real /bin/sh shell and
+  # administrative privileges; do not reuse the Linux package role.
+  provisioner "ansible" {
+    playbook_file = "${path.root}/../../ansible/playbooks/opnsense.yml"
+  }
 }
