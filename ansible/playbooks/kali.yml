@@ -1,0 +1,12 @@
+---
+- name: Provision Kali template
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    # Keep Kali-specific software separate from Ubuntu's cloud-init defaults.
+    template_packages:
+      - qemu-guest-agent
+      - curl
+  roles:
+    - role: template_base
